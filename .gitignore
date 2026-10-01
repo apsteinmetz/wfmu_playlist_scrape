@@ -4,6 +4,7 @@
 .Rproj.user/
 .Ruserdata
 
-# Temporary files
-*_temp.*
+# Temporary/intermediate build artifacts
+data/playlists_temp.parquet
+data/non_song_candidates.csv
 *.tmp
