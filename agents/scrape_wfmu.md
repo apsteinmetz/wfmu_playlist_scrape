@@ -357,7 +357,7 @@ Backups of the previous outputs: `data/*_pre_step3.*`.
 ### Open issues
 
 - Talk rows found in distinctive-artist lists are now step 2 patterns: WFMU's phone number (201-209-9368 in any format), WA's "W/ Dan Morfitt" and "Joe Mcgasko's ..." segments, and a "taking a break while" note (407 rows).
-- The app also loads `data/djdtm.rdata` for its chord plot. It is a `tm` DocumentTermMatrix (478 DJs x 11,878 artist words) from December 2025 that no current script creates; 22 current DJs are missing from it. Step 3 could produce it.
+- ~~The app also loads `data/djdtm.rdata` for its chord plot. It is a `tm` DocumentTermMatrix (478 DJs x 11,878 artist words) from December 2025 that no current script creates; 22 current DJs are missing from it. Step 3 could produce it.~~ *Done (October 2026).* `dj_artist_dtm()` in `R/func_similarity.R` builds the DTM from the current playlists; step 3 calls it and saves `data/djdtm.rdata`.
 
 ## 4 - save_files parquet.R
 
