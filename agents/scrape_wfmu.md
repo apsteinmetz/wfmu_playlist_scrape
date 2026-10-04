@@ -168,8 +168,8 @@ Formats unchanged (read by step 2):
 
 | File | Contents |
 |---|---|
-| `data/playlists_temp.parquet` | `DJ`, `AirDate`, `Artist`, `Title`: rows new this run (plus any recovered rows). Used by 1b for recovery; step 2 no longer reads it. |
-| `data/playlists_raw.parquet` | `DJ`, `AirDate`, `Artist`, `Title`: all scraped rows. |
+| `data/playlists_temp.parquet` | `DJ`, `AirDate`, `Seq`, `Artist`, `Title`: rows new this run (plus any recovered rows). Used by 1b for recovery; step 2 no longer reads it. |
+| `data/playlists_raw.parquet` | `DJ`, `AirDate`, `Seq`, `Artist`, `Title`: all scraped rows. `Seq` = position on the page; `NA` for rows scraped before it was added. |
 
 ### Data repair, September 2026
 
@@ -253,7 +253,9 @@ Other code efficiencies.
   9. Condense tokens to the most common artist spelling; ties go to the spelling that sorts first by bytes.
   10. Flag signature songs.
   11. Sort.
-- **Play order is preserved.** The app's playlist tab orders a show's songs by parquet row number, so output is sorted by DJ, air date and the song's position in `playlists_raw`.
+- **Play order is preserved.** The app's playlist tab orders a show's songs by parquet row number, so output is sorted by DJ, air date and play position. Position is `playlists_raw$Seq` (the song's position on the playlist page, recorded by 1b since Oct 2026). Rows from before then have `Seq = NA` and fall back to file order, which is NOT play order for most pre-2025 shows (about 75% of them don't even have contiguous rows), so signature detection is unreliable for them until they are re-scraped.
+- **Share test for signatures (order-free):** a song (artist token + first 3 title words, near-identical artist tokens merged within DJ + title, e.g. "Bob Mcallister"/"Bob Mccallister") in more than `SIGNATURE_MIN_SHARE` (0.5) of a DJ's shows is a signature song, for DJs with 50+ shows and songs in 10+ shows. Every play of it is flagged. Threshold chosen by comparing show shares of run-flagged songs with all others (Oct 2026): above 0.5 nearly all unflagged songs were show themes or furniture. It misses signature songs used for only part of a DJ's history (e.g. MS's "Adios..."), which still rely on the run test.
+- **Signature title matching:** consecutive openers/closers count as one song if they are equal after stripping version suffixes (mono, excerpt, intro...), or within 20% edit distance, comparing only the first k words when the shorter title has k >= 3 words ("Cherry Blossom Clinic" / "... Revisited"; "Auf Wiedershen" / "Auf Weidershen").
 - **Missing titles:** 1,066 rows with an `NA` title (left by an old parser) are kept, as before.
 - **Candidate report heuristics:**
   - `host_name`: the artist contains the host name from "Show with Host"

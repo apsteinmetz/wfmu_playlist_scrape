@@ -9,8 +9,12 @@
 #   data/playlists_raw.parquet  all scraped songs so far
 #
 # Outputs (formats consumed by step 2; do not change columns):
-#   data/playlists_temp.parquet DJ, AirDate, Artist, Title — rows new this run
-#   data/playlists_raw.parquet  DJ, AirDate, Artist, Title — all rows
+#   data/playlists_temp.parquet DJ, AirDate, Seq, Artist, Title — rows new this run
+#   data/playlists_raw.parquet  DJ, AirDate, Seq, Artist, Title — all rows
+#
+# Seq is the song's position on the playlist page (play order). Rows scraped
+# before Seq was added have Seq = NA, and for most of them file order is not
+# play order either; re-scraping those shows is the only way to recover it.
 #
 # "Already scraped" means the DJ + AirDate pair appears in playlists_raw. A page
 # that parses to no songs is stored as one blank row (Artist = Title = "") and
@@ -23,9 +27,6 @@
 library(tidyverse)
 library(rvest)
 library(xml2)
-library(duckplyr)
-
-duckplyr::methods_restore()
 
 source(here::here("R", "func_wfmu_http.R"))
 source(here::here("R", "func_parse_playlist.R"))
@@ -48,6 +49,7 @@ paths <- list(
 empty_songs <- tibble(
   DJ = character(0),
   AirDate = as.Date(character(0)),
+  Seq = integer(0),
   Artist = character(0),
   Title = character(0)
 )
@@ -97,7 +99,7 @@ message("Scraping ", nrow(pending), " playlists...")
 
 write_temp <- function(new_results) {
   bind_rows(leftover, select(new_results, -method)) |>
-    compute_parquet(paths$playlists_temp)
+    arrow::write_parquet(paths$playlists_temp)
 }
 
 results <- vector("list", nrow(pending))
@@ -142,8 +144,9 @@ if (nrow(pending) > 0) {
 # 6. Outputs
 
 playlists_temp <- bind_rows(leftover, select(new_rows, -method))
-compute_parquet(playlists_temp, paths$playlists_temp)
+arrow::write_parquet(playlists_temp, paths$playlists_temp)
 
+# rows from before Seq existed get Seq = NA
 playlists_raw <- bind_rows(playlists_raw, playlists_temp) |>
   distinct()
-compute_parquet(playlists_raw, paths$playlists_raw)
+arrow::write_parquet(playlists_raw, paths$playlists_raw)

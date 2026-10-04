@@ -1,0 +1,10 @@
+# Songs always flagged as signature songs for a DJ, wherever they are played.
+# Use for known signature songs the run and share tests miss. Used by step 2
+# (flag_signature_songs).
+#   dj              DJ code, e.g. MS
+#   title_pattern   regex, case-insensitive, matched against the cleaned title
+#                   (punctuation already removed)
+#   artist_pattern  optional regex, case-insensitive, matched against Artist
+#   note            free text
+dj,title_pattern,artist_pattern,note
+"MS","Wiedershen|Wiedersehn|Wiedersehen|Weidershen|Wiedershn","","Lawrence Welk Adios Au Revoir Auf Wiedersehen outro; misses run test (scrambled order) and share test (<50% of shows)"

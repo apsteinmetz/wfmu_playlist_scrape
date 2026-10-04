@@ -90,6 +90,41 @@ parse_header_table <- function(tables) {
       return(songs)
     }
   }
+  parse_header_row_table(tables)
+}
+
+# 2b. Fallback for tables whose header sits below a note row, e.g. TT's
+#     "Note: The music bed..." row above "Artist | Title | ...". Looks in the
+#     first `max_header_row` rows for one cell matching an artist header and
+#     another matching a title header, and takes songs from the rows below.
+parse_header_row_table <- function(tables, max_header_row = 5) {
+  match_col <- function(cells, candidates) {
+    for (name in candidates) {
+      idx <- which(stringr::str_detect(
+        stringr::str_trim(cells),
+        stringr::regex(paste0("^", name, "$"), ignore_case = TRUE)
+      ))
+      if (length(idx) > 0) return(idx[1])
+    }
+    NULL
+  }
+  for (tbl in tables) {
+    if (ncol(tbl) < 2 || nrow(tbl) < 2) next
+    for (r in seq_len(min(max_header_row, nrow(tbl) - 1))) {
+      cells <- as.character(unlist(tbl[r, ]))
+      artist_col <- match_col(cells, artist_header_names)
+      title_col <- match_col(cells, title_header_names)
+      if (is.null(artist_col) || is.null(title_col) || artist_col == title_col) next
+      rows <- (r + 1):nrow(tbl)
+      songs <- tidy_songs(
+        first_line(tbl[[artist_col]][rows]),
+        first_line(tbl[[title_col]][rows])
+      )
+      if (!is.null(songs)) {
+        return(songs)
+      }
+    }
+  }
   NULL
 }
 
@@ -216,22 +251,29 @@ fetch_playlist_doc <- function(url) {
   doc
 }
 
-# Scrape one show. Returns DJ, AirDate, Artist, Title, method:
+# Scrape one show. Returns DJ, AirDate, Seq, Artist, Title, method:
 #   - songs found:  one row per song, method = parser name
 #   - page parsed but no songs: one blank row (Artist = Title = ""), method =
 #     "none". The blank row marks the show as scraped so it isn't retried.
 #   - page could not be fetched: zero rows, so the show is retried next run.
+# Seq is the song's position on the page (play order). It is stored because
+# row order in parquet files is not reliable: older playlists_raw rows lost it.
 scrape_playlist <- function(dj, air_date, show_id) {
   doc <- fetch_playlist_doc(show_page_url(show_id))
   if (is.null(doc)) {
     return(tibble::tibble(
-      DJ = character(0), AirDate = as.Date(character(0)),
+      DJ = character(0), AirDate = as.Date(character(0)), Seq = integer(0),
       Artist = character(0), Title = character(0), method = character(0)
     ))
   }
   parsed <- parse_playlist(doc)
   if (is.null(parsed)) {
-    return(tibble::tibble(DJ = dj, AirDate = air_date, Artist = "", Title = "", method = "none"))
+    return(tibble::tibble(
+      DJ = dj, AirDate = air_date, Seq = 1L, Artist = "", Title = "", method = "none"
+    ))
   }
-  tibble::tibble(DJ = dj, AirDate = air_date, parsed$songs, method = parsed$method)
+  tibble::tibble(
+    DJ = dj, AirDate = air_date, Seq = seq_len(nrow(parsed$songs)),
+    parsed$songs, method = parsed$method
+  )
 }

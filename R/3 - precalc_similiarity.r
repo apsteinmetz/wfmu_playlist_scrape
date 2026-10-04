@@ -17,6 +17,7 @@
 
 library(tidyverse)
 
+source(here::here("R", "func_progress.R"))
 source(here::here("R", "func_similarity.R"))
 
 # ==================================================================
@@ -52,16 +53,19 @@ paths <- list(
 # ==================================================================
 # 1. Inputs
 
+progress_start()
+progress("Step 3: reading ", paths$playlists)
 playlists <- arrow::read_parquet(
   paths$playlists,
   col_select = c(DJ, AirDate, ArtistToken, Title, Signature)
 ) |>
   filter(!Signature)
+progress(fmt_n(nrow(playlists)), " plays after dropping signature plays")
 
 # ==================================================================
 # 2. Similarity
 
-start_time <- Sys.time()
+progress("Building weighted artist and song terms")
 terms <- similarity_terms(
   playlists,
   ref_date = max(playlists$AirDate),
@@ -70,30 +74,33 @@ terms <- similarity_terms(
   song_weight = SONG_WEIGHT,
   min_title_length = MIN_TITLE_LENGTH
 )
+progress("Cosine similarity over ", fmt_n(nrow(terms)), " DJ-term weights")
 dj_similarity <- dj_cosine_similarity(terms, sublinear = SUBLINEAR_TF)
 arrow::write_parquet(dj_similarity, paths$similarity)
+progress("Wrote ", paths$similarity, " (", fmt_n(nrow(dj_similarity)), " DJ pairs)")
 
 # ==================================================================
 # 3. Distinctive artists
 
+progress("Distinctive artists")
 distinctive <- distinctive_artists(playlists, n = DISTINCTIVE_N)
 arrow::write_parquet(distinctive, paths$distinctive)
 
 # ==================================================================
 # 4. Histogram
 
+progress("Similarity histogram")
 gg_sim <- similarity_histogram(dj_similarity)
 save(gg_sim, file = paths$histogram)
 
 # ==================================================================
 # 5. DJ x artist-word matrix for the chord plot
 
+progress("DJ x artist-word matrix for the chord plot")
 djdtm <- dj_artist_dtm(playlists, sparse = DTM_SPARSE)
 save(djdtm, file = paths$dtm)
 
-message(sprintf(
-  "%s DJs, %s terms, %s DJ pairs, %s distinctive artists in %.1f min",
-  n_distinct(terms$DJ), format(n_distinct(terms$term), big.mark = ","),
-  format(nrow(dj_similarity), big.mark = ","), format(nrow(distinctive), big.mark = ","),
-  as.numeric(difftime(Sys.time(), start_time, units = "mins"))
-))
+progress(
+  "Step 3 done: ", n_distinct(terms$DJ), " DJs, ", fmt_n(n_distinct(terms$term)), " terms, ",
+  fmt_n(nrow(dj_similarity)), " DJ pairs, ", fmt_n(nrow(distinctive)), " distinctive artists"
+)

@@ -1,0 +1,15 @@
+# Songs the share test should NOT flag as signature songs (heavy favorites,
+# not show furniture). Used by step 2 (flag_signature_songs).
+#   dj      DJ code, e.g. KH
+#   title   song title; matched on its first three words after normalising
+#           (case, punctuation, version suffixes), so tails don't matter
+#   artist  optional; if given, must appear (case-insensitive) in the artist
+#           name. Only needed when a DJ has two songs with the same title start.
+#   note    free text
+# Example (remove the leading # to use):
+# "KH","Boyfriend Application","Finally Punk","favorite, not furniture"
+dj,title,artist,note
+"GK","Gimme","Fatcat & Fishface","favorite, not furniture (review Oct 2026)"
+"KH","Boyfriend Application","Finally Punk","favorite, not furniture (review Oct 2026)"
+"R3","Ritual Music","Genesis P-Orridge","favorite, not furniture (review Oct 2026)"
+"B1","Kitty Woman","Sam Elwitt","favorite, not furniture (review Oct 2026)"

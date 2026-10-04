@@ -50,3 +50,6 @@ field,pattern,dj,note
 "Artist","^W/ Dan Morfitt","WA","Morfitt's Curiosities segment"
 "Artist","^Joe Mc[Gg]asko's","WA","crossover talk with Joe McGasko"
 "Artist","taking a break while","","show note"
+"Artist","<br>|<a href","","HTML markup (podcast links, credits), e.g. WC"
+"Artist","^A Minute With$","SH","segment"
+"Artist","^(Weird )?News( Break)?$","M5","segment"
